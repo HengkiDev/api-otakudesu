@@ -16,7 +16,7 @@ app.use(cors());
 app.get('/', (req, res) => {
   res.json({
     status: true,
-    creator: "SiputzX",
+    creator: "HengkiDev",
     message: "Selamat datang di Anime API",
     endpoints: {
       ongoing: "/api/anime/otakudesu/ongoing",
