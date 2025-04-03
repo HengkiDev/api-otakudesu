@@ -1,4 +1,3 @@
-// File: index.js
 const express = require('express');
 const axios = require('axios');
 const cheerio = require('cheerio');
@@ -6,11 +5,52 @@ const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// Base URL untuk Otakudesu
 const BASE_URL = 'https://otakudesu.cloud';
+const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
 
 app.use(cors());
+
+// Helper functions
+const fetchData = async (url) => {
+  return await axios.get(url, {
+    headers: { 'User-Agent': USER_AGENT }
+  });
+};
+
+const handleApiError = (error, res) => {
+  console.error('Error:', error);
+  res.status(500).json({
+    status: false,
+    message: "Failed to fetch data",
+    error: error.message
+  });
+};
+
+const parseOngoingAndCompleteAnime = ($) => {
+  const animeList = [];
+  $('.venz > ul > li').each((i, el) => {
+    const title = $(el).find('h2.jdlflm').text().trim();
+    const link = $(el).find('.detpost .thumb a').attr('href');
+    const endpoint = link ? link.replace(`${BASE_URL}/anime/`, '').replace('/', '') : '';
+    const thumbnail = $(el).find('.detpost .thumb img').attr('src');
+    const episode = $(el).find('.epz').text().trim();
+    const release_date = $(el).find('.newnime').text().trim();
+    
+    const genres_html = $(el).find('.genre').html() || '';
+    const genres = genres_html
+      .replace(/<span>/g, '')
+      .replace(/<\/span>/g, '')
+      .replace(/&nbsp;/g, '')
+      .split(',')
+      .map(g => g.trim())
+      .filter(g => g !== '');
+    
+    animeList.push({
+      title, episode, thumbnail, endpoint, genres, release_date
+    });
+  });
+  return animeList;
+};
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -22,7 +62,8 @@ app.get('/', (req, res) => {
       ongoing: "/api/anime/otakudesu/ongoing",
       complete: "/api/anime/otakudesu/complete",
       search: "/api/anime/otakudesu/search/:query",
-      detail: "/api/anime/otakudesu/detail/:endpoint"
+      detail: "/api/anime/otakudesu/detail/:endpoint",
+      tiktok: "/api/tiktok?url=<tiktok_url>"
     }
   });
 });
@@ -30,124 +71,34 @@ app.get('/', (req, res) => {
 // Ongoing anime endpoint
 app.get('/api/anime/otakudesu/ongoing', async (req, res) => {
   try {
-    const response = await axios.get(`${BASE_URL}/ongoing-anime/`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
-    });
-
+    const response = await fetchData(`${BASE_URL}/ongoing-anime/`);
     const $ = cheerio.load(response.data);
-    const animeList = [];
-
-    $('.venz > ul > li').each((i, el) => {
-      const title = $(el).find('h2.jdlflm').text().trim();
-      const linkElement = $(el).find('.detpost .thumb a');
-      const link = linkElement.attr('href');
-      const endpoint = link ? link.replace(`${BASE_URL}/anime/`, '').replace('/', '') : '';
-      
-      const thumbnailElement = $(el).find('.detpost .thumb img');
-      const thumbnail = thumbnailElement.attr('src');
-      
-      const episodeElement = $(el).find('.epz');
-      const episode = episodeElement.text().trim();
-      
-      const dateElement = $(el).find('.newnime');
-      const release_date = dateElement.text().trim();
-      
-      const genreElement = $(el).find('.genre');
-      const genres_html = genreElement.html() || '';
-      const genres = genres_html
-        .replace(/<span>/g, '')
-        .replace(/<\/span>/g, '')
-        .replace(/&nbsp;/g, '')
-        .split(',')
-        .map(g => g.trim())
-        .filter(g => g !== '');
-      
-      animeList.push({
-        title,
-        episode,
-        thumbnail,
-        endpoint,
-        genres,
-        release_date
-      });
-    });
-
+    const animeList = parseOngoingAndCompleteAnime($);
+    
     res.json({
       status: true,
       message: "success",
       result: animeList
     });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({
-      status: false,
-      message: "Failed to fetch data",
-      error: error.message
-    });
+    handleApiError(error, res);
   }
 });
 
 // Complete anime endpoint
 app.get('/api/anime/otakudesu/complete', async (req, res) => {
   try {
-    const response = await axios.get(`${BASE_URL}/complete-anime/`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
-    });
-
+    const response = await fetchData(`${BASE_URL}/complete-anime/`);
     const $ = cheerio.load(response.data);
-    const animeList = [];
-
-    $('.venz > ul > li').each((i, el) => {
-      const title = $(el).find('h2.jdlflm').text().trim();
-      const linkElement = $(el).find('.detpost .thumb a');
-      const link = linkElement.attr('href');
-      const endpoint = link ? link.replace(`${BASE_URL}/anime/`, '').replace('/', '') : '';
-      
-      const thumbnailElement = $(el).find('.detpost .thumb img');
-      const thumbnail = thumbnailElement.attr('src');
-      
-      const episodeElement = $(el).find('.epz');
-      const episode = episodeElement.text().trim();
-      
-      const dateElement = $(el).find('.newnime');
-      const release_date = dateElement.text().trim();
-      
-      const genreElement = $(el).find('.genre');
-      const genres_html = genreElement.html() || '';
-      const genres = genres_html
-        .replace(/<span>/g, '')
-        .replace(/<\/span>/g, '')
-        .replace(/&nbsp;/g, '')
-        .split(',')
-        .map(g => g.trim())
-        .filter(g => g !== '');
-      
-      animeList.push({
-        title,
-        episode,
-        thumbnail,
-        endpoint,
-        genres,
-        release_date
-      });
-    });
-
+    const animeList = parseOngoingAndCompleteAnime($);
+    
     res.json({
       status: true,
       message: "success",
       result: animeList
     });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({
-      status: false,
-      message: "Failed to fetch data",
-      error: error.message
-    });
+    handleApiError(error, res);
   }
 });
 
@@ -155,37 +106,22 @@ app.get('/api/anime/otakudesu/complete', async (req, res) => {
 app.get('/api/anime/otakudesu/search/:query', async (req, res) => {
   try {
     const query = req.params.query;
-    const response = await axios.get(`${BASE_URL}/?s=${query}&post_type=anime`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
-    });
-
+    const response = await fetchData(`${BASE_URL}/?s=${query}&post_type=anime`);
     const $ = cheerio.load(response.data);
     const animeList = [];
 
     $('.chivsrc > li').each((i, el) => {
       const title = $(el).find('h2').text().trim();
-      const linkElement = $(el).find('h2 a');
-      const link = linkElement.attr('href');
+      const link = $(el).find('h2 a').attr('href');
       const endpoint = link ? link.replace(`${BASE_URL}/anime/`, '').replace('/', '') : '';
+      const thumbnail = $(el).find('img').attr('src');
       
-      const thumbnailElement = $(el).find('img');
-      const thumbnail = thumbnailElement.attr('src');
-      
-      const genreElement = $(el).find('.set:contains("Genres")');
-      const genreText = genreElement.text().replace('Genres:', '').trim();
+      const genreText = $(el).find('.set:contains("Genres")').text().replace('Genres:', '').trim();
       const genres = genreText.split(',').map(g => g.trim()).filter(g => g !== '');
-      
-      const statusElement = $(el).find('.set:contains("Status")');
-      const status = statusElement.text().replace('Status:', '').trim();
+      const status = $(el).find('.set:contains("Status")').text().replace('Status:', '').trim();
       
       animeList.push({
-        title,
-        thumbnail,
-        endpoint,
-        genres,
-        status
+        title, thumbnail, endpoint, genres, status
       });
     });
 
@@ -195,12 +131,7 @@ app.get('/api/anime/otakudesu/search/:query', async (req, res) => {
       result: animeList
     });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({
-      status: false,
-      message: "Failed to fetch data",
-      error: error.message
-    });
+    handleApiError(error, res);
   }
 });
 
@@ -208,47 +139,35 @@ app.get('/api/anime/otakudesu/search/:query', async (req, res) => {
 app.get('/api/anime/otakudesu/detail/:endpoint', async (req, res) => {
   try {
     const endpoint = req.params.endpoint;
-    const response = await axios.get(`${BASE_URL}/anime/${endpoint}/`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
-    });
-
+    const response = await fetchData(`${BASE_URL}/anime/${endpoint}/`);
     const $ = cheerio.load(response.data);
-    const animeDetail = {};
-    const episodeList = [];
+    
+    const extractInfo = (selector) => $(selector).text().split(':')[1]?.trim() || '';
+    
+    const animeDetail = {
+      title: extractInfo('.infozingle p:contains("Judul")'),
+      japanese: extractInfo('.infozingle p:contains("Japanese")'),
+      score: extractInfo('.infozingle p:contains("Skor")'),
+      producer: extractInfo('.infozingle p:contains("Produser")'),
+      type: extractInfo('.infozingle p:contains("Tipe")'),
+      status: extractInfo('.infozingle p:contains("Status")'),
+      total_episode: extractInfo('.infozingle p:contains("Total Episode")'),
+      duration: extractInfo('.infozingle p:contains("Durasi")'),
+      release_date: extractInfo('.infozingle p:contains("Tanggal Rilis")'),
+      studio: extractInfo('.infozingle p:contains("Studio")'),
+      genre: extractInfo('.infozingle p:contains("Genre")').split(',').map(g => g.trim()).filter(g => g !== ''),
+      synopsis: $('.sinopc').text().trim(),
+      thumbnail: $('.wp-post-image').attr('src'),
+      episode_list: []
+    };
 
-    // Detail anime
-    animeDetail.title = $('.infozingle p:contains("Judul")').text().replace('Judul:', '').trim();
-    animeDetail.japanese = $('.infozingle p:contains("Japanese")').text().replace('Japanese:', '').trim();
-    animeDetail.score = $('.infozingle p:contains("Skor")').text().replace('Skor:', '').trim();
-    animeDetail.producer = $('.infozingle p:contains("Produser")').text().replace('Produser:', '').trim();
-    animeDetail.type = $('.infozingle p:contains("Tipe")').text().replace('Tipe:', '').trim();
-    animeDetail.status = $('.infozingle p:contains("Status")').text().replace('Status:', '').trim();
-    animeDetail.total_episode = $('.infozingle p:contains("Total Episode")').text().replace('Total Episode:', '').trim();
-    animeDetail.duration = $('.infozingle p:contains("Durasi")').text().replace('Durasi:', '').trim();
-    animeDetail.release_date = $('.infozingle p:contains("Tanggal Rilis")').text().replace('Tanggal Rilis:', '').trim();
-    animeDetail.studio = $('.infozingle p:contains("Studio")').text().replace('Studio:', '').trim();
-    animeDetail.genre = $('.infozingle p:contains("Genre")').text().replace('Genre:', '').trim()
-      .split(',').map(g => g.trim()).filter(g => g !== '');
-    animeDetail.synopsis = $('.sinopc').text().trim();
-    animeDetail.thumbnail = $('.wp-post-image').attr('src');
-
-    // Episode list
     $('.episodelist ul li').each((i, el) => {
-      const episodeTitle = $(el).find('span:first-child').text().trim();
-      const episodeLink = $(el).find('a').attr('href');
-      const episodeEndpoint = episodeLink ? episodeLink.replace(`${BASE_URL}/episode/`, '').replace('/', '') : '';
-      const episodeDate = $(el).find('span:last-child').text().trim();
-      
-      episodeList.push({
-        title: episodeTitle,
-        endpoint: episodeEndpoint,
-        date: episodeDate
+      animeDetail.episode_list.push({
+        title: $(el).find('span:first-child').text().trim(),
+        endpoint: $(el).find('a').attr('href')?.replace(`${BASE_URL}/episode/`, '').replace('/', '') || '',
+        date: $(el).find('span:last-child').text().trim()
       });
     });
-
-    animeDetail.episode_list = episodeList;
 
     res.json({
       status: true,
@@ -256,17 +175,8 @@ app.get('/api/anime/otakudesu/detail/:endpoint', async (req, res) => {
       result: animeDetail
     });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({
-      status: false,
-      message: "Failed to fetch data",
-      error: error.message
-    });
+    handleApiError(error, res);
   }
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
 });
 
 // TikTok downloader endpoint
@@ -281,34 +191,27 @@ app.get('/api/tiktok', async (req, res) => {
       });
     }
     
-    // Process URLs from both TikTok and VT subdomain
     let processedUrl = url;
     
-    // If it's a vt.tiktok.com URL, we'll need to follow the redirect to get the full URL
     if (url.includes('vt.tiktok.com')) {
       try {
-        const response = await axios.get(url, {
+        await axios.get(url, {
           maxRedirects: 0,
           validateStatus: status => status >= 200 && status < 400
         });
       } catch (redirectError) {
-        if (redirectError.response && redirectError.response.headers.location) {
+        if (redirectError.response?.headers.location) {
           processedUrl = redirectError.response.headers.location;
         }
       }
     }
     
-    // Make request to the external API
     const response = await axios.get(`https://api.siputzx.my.id/api/tiktok?url=${encodeURIComponent(processedUrl)}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
+      headers: { 'User-Agent': USER_AGENT }
     });
     
-    // Process and format the response to match our API structure
     const result = response.data;
     
-    // Return the response
     res.json({
       status: result.status,
       message: result.status ? "success" : "failed",
@@ -323,6 +226,10 @@ app.get('/api/tiktok', async (req, res) => {
       error: error.message
     });
   }
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
 
 module.exports = app;
