@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime & TikTok API - HengkiDev</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #6a26cd;
+            --secondary-color: #ff61a6;
+            --dark-color: #2d3748;
+            --light-color: #f7fafc;
+            --success-color: #38a169;
+            --warning-color: #e53e3e;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--dark-color);
+            background-color: #f0f2f5;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 0;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            border-radius: 0 0 20px 20px;
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .creator {
+            margin-top: 1rem;
+            font-style: italic;
+        }
+        
+        .main {
+            padding: 2rem 0;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card h2 {
+            font-size: 1.8rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .card h2 i {
+            margin-right: 0.75rem;
+        }
+        
+        .card p {
+            margin-bottom: 1.5rem;
+            color: #4a5568;
+        }
+        
+        .endpoints {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+        
+        .endpoint {
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .endpoint:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .endpoint h3 {
+            font-size: 1.2rem;
+            color: var(--dark-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .endpoint-url {
+            display: flex;
+            background-color: #edf2f7;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+        
+        .method {
+            display: inline-block;
+            margin-right: 0.75rem;
+            padding: 0.1rem 0.5rem;
+            border-radius: 4px;
+            color: white;
+            background-color: var(--success-color);
+        }
+        
+        .example {
+            margin-top: 1rem;
+        }
+        
+        .example h4 {
+            margin-bottom: 0.5rem;
+            color: #4a5568;
+            font-size: 1rem;
+        }
+        
+        .tiktok-card {
+            background: linear-gradient(135deg, #00f2ea, #ff0050);
+        }
+        
+        .tiktok-card h2 {
+            color: white;
+        }
+        
+        .tiktok-card p {
+            color: white;
+            opacity: 0.9;
+        }
+        
+        .tiktok-form {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        
+        .tiktok-form h3 {
+            margin-bottom: 1rem;
+            color: var(--dark-color);
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #4a5568;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        button:hover {
+            background-color: #5a20b0;
+        }
+        
+        #result {
+            margin-top: 1.5rem;
+            display: none;
+        }
+        
+        #result .video-container {
+            margin-top: 1rem;
+        }
+        
+        #result video {
+            max-width: 100%;
+            border-radius: 8px;
+        }
+        
+        .result-item {
+            margin-bottom: 1rem;
+        }
+        
+        .result-item h4 {
+            margin-bottom: 0.5rem;
+            color: var(--dark-color);
+        }
+        
+        .result-item p {
+            margin-bottom: 0.5rem;
+        }
+        
+        .download-btn {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .download-btn:hover {
+            background-color: #5a20b0;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: #4a5568;
+        }
+        
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+            
+            .card h2 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1><i class="fas fa-server"></i> API Service</h1>
+            <p>Anime & TikTok Downloader API</p>
+            <div class="creator">Created by HengkiDev</div>
+        </div>
+    </header>
+    
+    <div class="container main">
+        <div class="card">
+            <h2><i class="fas fa-film"></i> Anime API</h2>
+            <p>Access anime information from Otakudesu with our easy-to-use API endpoints.</p>
+            
+            <div class="endpoints">
+                <div class="endpoint">
+                    <h3>Get Ongoing Anime</h3>
+                    <div class="endpoint-url">
+                        <span class="method">GET</span>
+                        <span>/api/anime/otakudesu/ongoing</span>
+                    </div>
+                </div>
+                
+                <div class="endpoint">
+                    <h3>Get Complete Anime</h3>
+                    <div class="endpoint-url">
+                        <span class="method">GET</span>
+                        <span>/api/anime/otakudesu/complete</span>
+                    </div>
+                </div>
+                
+                <div class="endpoint">
+                    <h3>Search Anime</h3>
+                    <div class="endpoint-url">
+                        <span class="method">GET</span>
+                        <span>/api/anime/otakudesu/search/:query</span>
+                    </div>
+                    <div class="example">
+                        <h4>Example:</h4>
+                        <div class="endpoint-url">
+                            <span>/api/anime/otakudesu/search/naruto</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="endpoint">
+                    <h3>Get Anime Details</h3>
+                    <div class="endpoint-url">
+                        <span class="method">GET</span>
+                        <span>/api/anime/otakudesu/detail/:endpoint</span>
+                    </div>
+                    <div class="example">
+                        <h4>Example:</h4>
+                        <div class="endpoint-url">
+                            <span>/api/anime/otakudesu/detail/one-piece</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card tiktok-card">
+            <h2><i class="fab fa-tiktok"></i> TikTok Downloader</h2>
+            <p>Download TikTok videos without watermark using our API.</p>
+            
+            <div class="tiktok-form">
+                <h3>Try It Now</h3>
+                <div class="form-group">
+                    <label for="tiktok-url">TikTok URL:</label>
+                    <input type="text" id="tiktok-url" placeholder="https://www.tiktok.com/@username/video/1234567890123456789">
+                </div>
+                <button id="download-btn">Download</button>
+                
+                <div id="result">
+                    <div class="result-item">
+                        <h4>Video Information</h4>
+                        <p id="video-author"></p>
+                        <p id="video-desc"></p>
+                    </div>
+                    
+                    <div class="result-item">
+                        <h4>Preview</h4>
+                        <div class="video-container">
+                            <video id="video-preview" controls></video>
+                        </div>
+                    </div>
+                    
+                    <div class="result-item">
+                        <h4>Download Options</h4>
+                        <div id="download-links"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="endpoints" style="margin-top: 1.5rem; background-color: rgba(255, 255, 255, 0.9);">
+                <div class="endpoint">
+                    <h3>TikTok Downloader API</h3>
+                    <div class="endpoint-url">
+                        <span class="method">GET</span>
+                        <span>/api/tiktok?url=TIKTOK_URL</span>
+                    </div>
+                    <div class="example">
+                        <h4>Example:</h4>
+                        <div class="endpoint-url">
+                            <span>/api/tiktok?url=https://www.tiktok.com/@username/video/1234567890123456789</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 HengkiDev. All rights reserved.</p>
+        </div>
+    </footer>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const downloadBtn = document.getElementById('download-btn');
+            const resultDiv = document.getElementById('result');
+            const videoPreview = document.getElementById('video-preview');
+            const videoAuthor = document.getElementById('video-author');
+            const videoDesc = document.getElementById('video-desc');
+            const downloadLinks = document.getElementById('download-links');
+            
+            downloadBtn.addEventListener('click', async function() {
+                const tiktokUrl = document.getElementById('tiktok-url').value.trim();
+                
+                if (!tiktokUrl) {
+                    alert('Please enter a TikTok URL');
+                    return;
+                }
+                
+                downloadBtn.textContent = 'Processing...';
+                downloadBtn.disabled = true;
+                resultDiv.style.display = 'none';
+                
+                try {
+                    const response = await fetch(`/api/tiktok?url=${encodeURIComponent(tiktokUrl)}`);
+                    const data = await response.json();
+                    
+                    if (data.status) {
+                        // Display the result
+                        videoAuthor.textContent = `Creator: ${data.result.author.nickname} (@${data.result.author.unique_id})`;
+                        videoDesc.textContent = `Description: ${data.result.desc}`;
+                        
+                        // Set preview video
+                        videoPreview.src = data.result.video[0];
+                        
+                        // Create download links
+                        downloadLinks.innerHTML = '';
+                        
+                        // Video download link
+                        const videoLink = document.createElement('a');
+                        videoLink.href = data.result.video[0];
+                        videoLink.className = 'download-btn';
+                        videoLink.textContent = 'Download Video';
+                        videoLink.setAttribute('download', 'tiktok-video.mp4');
+                        videoLink.setAttribute('target', '_blank');
+                        downloadLinks.appendChild(videoLink);
+                        
+                        // Audio download link if available
+                        if (data.result.music && data.result.music.play_url && data.result.music.play_url.length > 0) {
+                            const audioLink = document.createElement('a');
+                            audioLink.href = data.result.music.play_url[0];
+                            audioLink.className = 'download-btn';
+                            audioLink.style.marginLeft = '10px';
+                            audioLink.textContent = 'Download Audio';
+                            audioLink.setAttribute('download', 'tiktok-audio.mp3');
+                            audioLink.setAttribute('target', '_blank');
+                            downloadLinks.appendChild(audioLink);
+                        }
+                        
+                        resultDiv.style.display = 'block';
+                    } else {
+                        alert('Failed to process the TikTok URL. Please try again.');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again.');
+                } finally {
+                    downloadBtn.textContent = 'Download';
+                    downloadBtn.disabled = false;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
