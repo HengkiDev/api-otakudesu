@@ -62,8 +62,7 @@ app.get('/', (req, res) => {
       ongoing: "/api/anime/otakudesu/ongoing",
       complete: "/api/anime/otakudesu/complete",
       search: "/api/anime/otakudesu/search/:query",
-      detail: "/api/anime/otakudesu/detail/:endpoint",
-      tiktok: "/api/tiktok?url=<tiktok_url>"
+      detail: "/api/anime/otakudesu/detail/:endpoint"
     }
   });
 });
@@ -174,68 +173,6 @@ app.get('/api/anime/otakudesu/detail/:endpoint', async (req, res) => {
       message: "success",
       result: animeDetail
     });
-  } catch (error) {
-    handleApiError(error, res);
-  }
-});
-
-// TikTok download endpoint
-app.get('/api/tiktok', async (req, res) => {
-  try {
-    const url = req.query.url;
-    
-    if (!url) {
-      return res.status(400).json({
-        status: false,
-        message: "URL parameter is required"
-      });
-    }
-
-    // First request to get the form token
-    const initialResponse = await fetchData('https://pro.snaptik.app/');
-    const $ = cheerio.load(initialResponse.data);
-    const token = $('input[name="token"]').val();
-
-    // Submit the form to get the download page
-    const formData = new URLSearchParams();
-    formData.append('url', url);
-    formData.append('token', token);
-
-    const submitResponse = await axios.post('https://pro.snaptik.app/action.php', formData, {
-      headers: {
-        'User-Agent': USER_AGENT,
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Referer': 'https://pro.snaptik.app/'
-      }
-    });
-
-    const downloadPage = cheerio.load(submitResponse.data);
-    
-    // Extract download URLs
-    const downloadUrls = [];
-    downloadPage('.download-file a').each((i, el) => {
-      const downloadUrl = $(el).attr('href');
-      if (downloadUrl && !downloadUrl.includes('javascript:void') && downloadUrl !== '#') {
-        downloadUrls.push(downloadUrl);
-      }
-    });
-
-    // Add the base URL as the last option
-    downloadUrls.push('https://pro.snaptik.app/');
-
-    // Create response object in the requested format
-    const responseData = {
-      status: true,
-      data: {
-        success: true,
-        original_url: url,
-        oembed_url: `https://www.tiktok.com/oembed?url=${url.replace('vt.tiktok.com', 'www.tiktok.com')}`,
-        type: "video",
-        urls: downloadUrls
-      }
-    };
-
-    res.json(responseData);
   } catch (error) {
     handleApiError(error, res);
   }
