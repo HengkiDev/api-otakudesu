@@ -6,7 +6,6 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const BASE_URL = 'https://otakudesu.cloud';
-const TIKTOK_BASE_URL = 'https://pro.snaptik.app';
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
 
 app.use(cors());
@@ -180,7 +179,7 @@ app.get('/api/anime/otakudesu/detail/:endpoint', async (req, res) => {
   }
 });
 
-// TikTok downloader endpoint
+// TikTok download endpoint
 app.get('/api/tiktok', async (req, res) => {
   try {
     const url = req.query.url;
@@ -191,50 +190,54 @@ app.get('/api/tiktok', async (req, res) => {
         message: "URL parameter is required"
       });
     }
-    
-    let processedUrl = url;
-    
-    if (url.includes('vt.tiktok.com')) {
-      try {
-        await axios.get(url, {
-          maxRedirects: 0,
-          validateStatus: status => status >= 200 && status < 400
-        });
-      } catch (redirectError) {
-        if (redirectError.response?.headers.location) {
-          processedUrl = redirectError.response.headers.location;
-        }
+
+    // First request to get the form token
+    const initialResponse = await fetchData('https://pro.snaptik.app/');
+    const $ = cheerio.load(initialResponse.data);
+    const token = $('input[name="token"]').val();
+
+    // Submit the form to get the download page
+    const formData = new URLSearchParams();
+    formData.append('url', url);
+    formData.append('token', token);
+
+    const submitResponse = await axios.post('https://pro.snaptik.app/action.php', formData, {
+      headers: {
+        'User-Agent': USER_AGENT,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Referer': 'https://pro.snaptik.app/'
       }
-    }
-    
-    // Updated to use the new TikTok base URL
-    const response = await axios.get(`${TIKTOK_BASE_URL}/api/download?url=${encodeURIComponent(processedUrl)}`, {
-      headers: { 'User-Agent': USER_AGENT }
     });
+
+    const downloadPage = cheerio.load(submitResponse.data);
     
-    const data = response.data;
-    
-    // Format the response according to the example provided
-    const result = {
-      status: data.status || true,
-      message: "success",
-      creator: "HengkiDev",
-      result: {
-        original_url: data.data?.original_url || url,
-        oembed_url: data.data?.oembed_url || null,
-        type: data.data?.type || "video",
-        download_urls: data.data?.urls || []
+    // Extract download URLs
+    const downloadUrls = [];
+    downloadPage('.download-file a').each((i, el) => {
+      const downloadUrl = $(el).attr('href');
+      if (downloadUrl && !downloadUrl.includes('javascript:void') && downloadUrl !== '#') {
+        downloadUrls.push(downloadUrl);
+      }
+    });
+
+    // Add the base URL as the last option
+    downloadUrls.push('https://pro.snaptik.app/');
+
+    // Create response object in the requested format
+    const responseData = {
+      status: true,
+      data: {
+        success: true,
+        original_url: url,
+        oembed_url: `https://www.tiktok.com/oembed?url=${url.replace('vt.tiktok.com', 'www.tiktok.com')}`,
+        type: "video",
+        urls: downloadUrls
       }
     };
-    
-    res.json(result);
+
+    res.json(responseData);
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({
-      status: false,
-      message: "Failed to fetch TikTok data",
-      error: error.message
-    });
+    handleApiError(error, res);
   }
 });
 
