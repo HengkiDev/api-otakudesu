@@ -6,6 +6,7 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const BASE_URL = 'https://otakudesu.cloud';
+const TIKTOK_BASE_URL = 'https://pro.snaptik.app';
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
 
 app.use(cors());
@@ -206,18 +207,27 @@ app.get('/api/tiktok', async (req, res) => {
       }
     }
     
-    const response = await axios.get(`https://api.siputzx.my.id/api/tiktok?url=${encodeURIComponent(processedUrl)}`, {
+    // Updated to use the new TikTok base URL
+    const response = await axios.get(`${TIKTOK_BASE_URL}/api/download?url=${encodeURIComponent(processedUrl)}`, {
       headers: { 'User-Agent': USER_AGENT }
     });
     
-    const result = response.data;
+    const data = response.data;
     
-    res.json({
-      status: result.status,
-      message: result.status ? "success" : "failed",
+    // Format the response according to the example provided
+    const result = {
+      status: data.status || true,
+      message: "success",
       creator: "HengkiDev",
-      result: result.result
-    });
+      result: {
+        original_url: data.data?.original_url || url,
+        oembed_url: data.data?.oembed_url || null,
+        type: data.data?.type || "video",
+        download_urls: data.data?.urls || []
+      }
+    };
+    
+    res.json(result);
   } catch (error) {
     console.error('Error:', error);
     res.status(500).json({
